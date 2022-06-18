@@ -1,4 +1,44 @@
-- name: Update packages
+# Apply system updates
+- name: Update packages to latest versions
   apt:
     name: "*"
     state: latest
+    update_cache: yes
+
+# Install additional packaages
+- name: Install latest version of 'openjdk-17-jdk-headless'
+  apt:
+    name: "openjdk-17-jdk-headless"
+    state: latest
+
+- name: Install latest version of 'screen'
+  apt:
+    name: "screen"
+    state: latest
+
+# Creation and configuration of non root user
+- name: Add the user 'server-admin' with a bash shell, added to 'admin' group
+  ansible.builtin.user:
+    name: server-admin
+    shell: /bin/bash
+    groups: admin
+    append: yes
+
+# Configure server firewall
+- name: Enable OpenSSH profile
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+
+- name: Allow port 25565
+  community.general.ufw:
+    rule: allow
+    port: '25565'
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+
+- name: Reboot the machine
+  reboot:
+    reboot_timeout: 120
