@@ -1,0 +1,5 @@
+- name: Initialize server by running updates and applying base configs
+  hosts: webservers
+
+  roles:
+  - init-server
