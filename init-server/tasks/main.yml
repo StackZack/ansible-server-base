@@ -23,11 +23,36 @@
 
 # Creation and configuration of non root user
 - name: Add the user 'server-admin' with a bash shell, added to 'admin' group
-  ansible.builtin.user:
+  user:
     name: server-admin
+    password: "{{ user_password | password_hash('sha512') }}"
     shell: /bin/bash
     groups: admin
     append: yes
+
+- name: Create .ssh directory if it does not exist
+  file:
+    path: /home/server-admin/.ssh/
+    state: directory
+    owner: server-admin
+    group: server-admin
+    mode: '0700'
+
+- name: Copy ssh public key to new user .ssh directory
+  copy:
+    src: ~/.ssh/server_rsa.pub
+    dest: /home/server-admin/.ssh
+    owner: server-admin
+    group: server-admin
+
+- name: Rename copied pulic key authorized_keys directory if it does not exist
+  copy:
+    remote_src: yes
+    src: /home/server-admin/.ssh/server_rsa.pub
+    dest: /home/server-admin/.ssh/authorized_keys
+    owner: server-admin
+    group: server-admin
+    mode: '0600'
 
 # Configure server firewall
 - name: Enable OpenSSH profile
@@ -45,7 +70,7 @@
     state: enabled
 
 # Configure Fail2Ban
-- name: Copy file with owner and permission, using symbolic representation
+- name: Copy Fail2Ban conf to local
   copy:
     remote_src: yes
     src: /etc/fail2ban/jail.conf
@@ -56,7 +81,19 @@
     name: fail2ban
     state: restarted
 
-# Reboot machine to finalize setup
+# Reboot machine and disable root login to finalize setup
 - name: Reboot the machine
   reboot:
     reboot_timeout: 120
+
+- name: Disable Root Login
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin'
+    line: "PermitRootLogin no"
+    state: present
+
+- name: Restart sshd service
+  service:
+    name: sshd
+    state: restarted
