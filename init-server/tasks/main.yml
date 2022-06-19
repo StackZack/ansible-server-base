@@ -16,6 +16,11 @@
     name: "screen"
     state: latest
 
+- name: Install latest version of 'fail2ban'
+  apt:
+    name: "fail2ban"
+    state: latest
+
 # Creation and configuration of non root user
 - name: Add the user 'server-admin' with a bash shell, added to 'admin' group
   ansible.builtin.user:
@@ -39,6 +44,19 @@
   community.general.ufw:
     state: enabled
 
+# Configure Fail2Ban
+- name: Copy file with owner and permission, using symbolic representation
+  copy:
+    remote_src: yes
+    src: /etc/fail2ban/jail.conf
+    dest: /etc/fail2ban/jail.local
+
+- name: Restart Fail2Ban service
+  service:
+    name: fail2ban
+    state: restarted
+
+# Reboot machine to finalize setup
 - name: Reboot the machine
   reboot:
     reboot_timeout: 120
